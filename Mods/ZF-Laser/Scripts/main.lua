@@ -114,14 +114,23 @@ end
 
 -- The arms animation Blueprint is the only per-frame Blueprint in play, and only Blueprints can be hooked.
 -- It exists once a heist has loaded, so the hook is attempted whenever a player character appears.
--- A map reload replaces the Blueprint's function object and the old hook dies with it,
--- so the hook is placed again when the object changes.
+-- A map reload replaces the Blueprint's function object, so the hook is placed
+-- again when the object changes. The old hook keeps firing regardless, so it is
+-- removed first, or OnFrame runs once more per frame after every heist.
+local HookIds = nil   -- pre and post ids of the hook in place
 local function HookFrame()
     local Found = StaticFindObject(FramePath)
     if not Found or not Found:IsValid() or Found:GetAddress() == HookedFrame then return end
-    local Ok, Err = pcall(RegisterHook, FramePath, OnFrame)
-    if Ok then HookedFrame = Found:GetAddress() end
-    Game.Log("per-frame hook %s", Ok and "installed" or ("failed: " .. tostring(Err)))
+    if HookIds then
+        pcall(UnregisterHook, FramePath, HookIds[1], HookIds[2])
+        HookIds = nil
+    end
+    local Ok, Pre, Post = pcall(RegisterHook, FramePath, OnFrame)
+    if Ok then
+        HookedFrame = Found:GetAddress()
+        HookIds = { Pre, Post }
+    end
+    Game.Log("per-frame hook %s", Ok and "installed" or ("failed: " .. tostring(Pre)))
 end
 
 -- A new player character means a new heist
