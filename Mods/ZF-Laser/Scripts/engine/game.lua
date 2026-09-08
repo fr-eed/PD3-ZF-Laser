@@ -70,13 +70,23 @@ function Game.DeltaSeconds(Context)
     return Game.Default("/Script/Engine.Default__GameplayStatics"):GetWorldDeltaSeconds(Context)
 end
 
+-- UE4SS never frees a table it fills as an out parameter, so a new table per
+-- call is a memory leak. So one table is reused, cleared before each call,
+-- else UE4SS logs a warning per weak pointer.
+function Game.Reuse(Table)
+    for Key in pairs(Table) do Table[Key] = nil end
+    return Table
+end
+
+local Attached = {}
+local WorldHit, PawnHit = {}, {}
+
 -- The ignore list for traces: the weapon and every actor attached to it,
 -- which is where the game's attachments and charms hang, so the beam does collide on its own gun.
 function Game.WeaponActors(Weapon)
     local List = { Weapon }
     pcall(function()
-        local Attached = {}
-        Weapon:GetAttachedActors(Attached, true, true)
+        Weapon:GetAttachedActors(Game.Reuse(Attached), true, true)
         for _, Actor in ipairs(Attached) do
             if type(Actor.get) == "function" then Actor = Actor:get() end
             if Actor and Actor:IsValid() then List[#List + 1] = Actor end
@@ -90,8 +100,9 @@ local Visibility = 0   -- ETraceTypeQuery::TraceTypeQuery1
 local Pawns = { 2 }    -- EObjectTypeQuery::Pawn
 
 -- Line trace on the visibility channel. Returns the hit table or nil.
+-- The table is the same one every call, valid until the next TraceWorld.
 function Game.TraceWorld(Context, Start, End, Ignore)
-    local Hit = {}
+    local Hit = Game.Reuse(WorldHit)
     local Library = Game.Default("/Script/Engine.Default__KismetSystemLibrary")
     if Library:LineTraceSingle(Context, Start, End, Visibility, false, Ignore, 0, Hit, true, Red, Green, 0.0) then
         return Hit
@@ -100,9 +111,9 @@ function Game.TraceWorld(Context, Start, End, Ignore)
 end
 
 -- Characters don't block the visibility channel, so they are traced by object type.
--- Returns the hit table or nil.
+-- Returns the hit table or nil, valid until the next TracePawns.
 function Game.TracePawns(Context, Start, End, Ignore)
-    local Hit = {}
+    local Hit = Game.Reuse(PawnHit)
     local Library = Game.Default("/Script/Engine.Default__KismetSystemLibrary")
     if Library:LineTraceSingleForObjects(Context, Start, End, Pawns, false, Ignore, 0, Hit, true, Red, Green, 0.0) then
         return Hit
