@@ -9,6 +9,9 @@ A laser sight for PAYDAY 3. A beam and a dot on the gun in hand
 - Settings section in Settings > Interface. Key 0 toggles the laser by default. Choices are saved.
 - Click sound on switch, and a color picker.
 
+Download from the [GitHub releases](https://github.com/fr-eed/PD3-ZF-Laser/releases).
+Also listed on [ModWorkshop](https://modworkshop.net/mod/58787).
+
 ## Install
 
 Requires the PAYDAY 3 UE4SS loader: [PD3 UE4SS V3.01 + Allow Pak Mods](https://modworkshop.net/mod/47771) on ModWorkshop.
