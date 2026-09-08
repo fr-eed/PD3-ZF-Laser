@@ -40,34 +40,19 @@ function Game.Default(Path)
     return Object
 end
 
--- FindFirstOf walks every object, so the player is kept until invalid.
-local Controller, Pawn = nil, nil
-
-function Game.Controller()
-    if Controller and Controller:IsValid() then return Controller end
-    Controller = FindFirstOf("PlayerController")
-    if Controller and Controller:IsValid() then return Controller end
-    Controller = nil
+-- The actor an animation instance animates, or nil. Nothing is looked up
+-- or cached: after a heist restart the old controller and character stay
+-- in the object list for a while, and any search would find them first.
+function Game.OwnerOf(AnimInstance)
+    if not AnimInstance or not AnimInstance:IsValid() then return nil end
+    local Owner = AnimInstance:GetOwningActor()
+    if Owner and Owner:IsValid() then return Owner end
     return nil
 end
 
-function Game.Pawn()
-    if Pawn and Pawn:IsValid() then return Pawn end
-    local Owner = Game.Controller()
-    if not Owner then return nil end
-    Pawn = Owner:K2_GetPawn()
-    if Pawn and Pawn:IsValid() then return Pawn end
-    Pawn = nil
-    return nil
-end
-
-function Game.ForgetPawn()
-    Pawn = nil
-end
-
-function Game.Camera()
-    local Owner = Game.Controller()
-    local Camera = Owner and Owner.PlayerCameraManager
+function Game.Camera(Pawn)
+    local Owner = Pawn.Controller
+    local Camera = Owner and Owner:IsValid() and Owner.PlayerCameraManager
     if Camera and Camera:IsValid() then return Camera end
     return nil
 end

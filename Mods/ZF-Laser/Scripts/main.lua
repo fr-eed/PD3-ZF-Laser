@@ -24,8 +24,9 @@ local Equipped = 2   -- ESBZEquipState
 local FramePath = "/Game/Gameplay/Player/ABP_FPPlayerBase.ABP_FPPlayerBase_C:BlueprintUpdateAnimation"
 
 local Lasers = {}         -- weapon address -> Laser
-local FrameHooked = false
+local HookedFrame = nil   -- address of the animation update function we hooked
 local Creating = nil      -- weapon address whose laser is being spawned
+local LastPawn = nil      -- address of the character the lasers belong to
 
 -- Cleared in place: dev.lua keeps a reference to this table.
 local function DestroyAll()
@@ -69,10 +70,18 @@ local function CreateLater(Weapon)
     end)
 end
 
-local function OnFrame()
+-- Context is the arms' animation instance, whose owner is the local
+-- character, always the current one; no object scan and nothing cached.
+local function OnFrame(Context)
     local Ok, Err = pcall(function()
-        local Player = Game.Pawn()
+        local Player = Game.OwnerOf(Context:get())
         if not Player then return end
+        -- A different character means a new heist: the old lasers died with
+        -- the old map, even where their objects still look alive.
+        if Player:GetAddress() ~= LastPawn then
+            LastPawn = Player:GetAddress()
+            DestroyAll()
+        end
         for Address, Item in pairs(Lasers) do
             if not Item:IsValid() then
                 Item:Destroy()
@@ -98,19 +107,20 @@ local function OnFrame()
             Item:SetOn(true)
             Sound.Play(Config, Wanted)
         end
-        Item:Update(Player, Game.Camera())
+        Item:Update(Player, Game.Camera(Player))
     end)
     if not Ok then Game.Log("frame error: %s", tostring(Err)) end
 end
 
 -- The arms animation Blueprint is the only per-frame Blueprint in play, and only Blueprints can be hooked.
 -- It exists once a heist has loaded, so the hook is attempted whenever a player character appears.
+-- A map reload replaces the Blueprint's function object and the old hook dies with it,
+-- so the hook is placed again when the object changes.
 local function HookFrame()
-    if FrameHooked then return end
     local Found = StaticFindObject(FramePath)
-    if not Found or not Found:IsValid() then return end
+    if not Found or not Found:IsValid() or Found:GetAddress() == HookedFrame then return end
     local Ok, Err = pcall(RegisterHook, FramePath, OnFrame)
-    FrameHooked = Ok
+    if Ok then HookedFrame = Found:GetAddress() end
     Game.Log("per-frame hook %s", Ok and "installed" or ("failed: " .. tostring(Err)))
 end
 
@@ -119,7 +129,6 @@ end
 -- registering hooks at that moment can crash, so the work is queued for the game thread's next safe point.
 NotifyOnNewObject("/Script/Starbreeze.SBZPlayerCharacter", function()
     Game.OnGameThread(function()
-        Game.ForgetPawn()
         DestroyAll()
         HookFrame()
     end)

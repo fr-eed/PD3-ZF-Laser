@@ -22,6 +22,11 @@ function Laser.New(Weapon, Config)
         Weapon = Weapon, Socket = Socket, ClassName = ClassName, Tuning = Tune,
         Visual = Drawn, Config = Config, On = false,
         Bore = Zeroing.Bore(Tune.Mount, Tune.Bore),
+        -- The weapon object's instance path: class, level and a running
+        -- number unique to this object. After a heist restart a new weapon
+        -- can land at the old one's address and look valid.
+        -- The instance path still can tell them apart.
+        Instance = Weapon:GetFullName(),
     }, Laser)
     Self.Aim = Self.Bore   -- unit direction in the socket frame
     Drawn:LayOut(Self.Aim)
@@ -30,7 +35,7 @@ function Laser.New(Weapon, Config)
 end
 
 function Laser:IsValid()
-    return self.Weapon:IsValid() and self.Visual:IsValid()
+    return self.Weapon:IsValid() and self.Weapon:GetFullName() == self.Instance and self.Visual:IsValid()
 end
 
 function Laser:SetOn(On)
