@@ -1,0 +1,23 @@
+ZF-Laser
+
+A laser sight for PAYDAY 3
+
+Requires the PAYDAY 3 UE4SS loader:
+https://modworkshop.net/mod/47771
+
+Install
+  1. Open the loader's Mods folder next to PAYDAY3-Win64-Shipping.exe (PAYDAY3\Binaries\UE4SS\Mods).
+  2. Copy the Mods\ZF-Laser folder from this zip into it, so you have
+     Mods\ZF-Laser\enabled.txt and Mods\ZF-Laser\Scripts\.
+  3. Enjoy
+
+Settings
+  In game: Settings > Interface, scroll to the ZF-LASER section.
+  Key 0 toggles the laser. Choices are saved to Scripts\settings.lua.
+  Defaults and the values without a menu row are in Scripts\config.lua.
+
+Uninstall
+  Delete the Mods\ZF-Laser folder.
+
+More info, issues, source
+  https://github.com/fr-eed/PD3-ZF-Laser

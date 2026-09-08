@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that version.lua matches the tag
+        run: |
+          Expected="return \"${GITHUB_REF_NAME#v}\""
+          Actual=$(cat Mods/ZF-Laser/Scripts/version.lua)
+          if [ "$Actual" != "$Expected" ]; then
+            echo "version.lua has: $Actual"
+            echo "the tag wants:   $Expected"
+            exit 1
+          fi
+
+      - name: Package
+        run: |
+          rm -f Mods/ZF-Laser/Scripts/settings.lua Mods/ZF-Laser/Scripts/dev.lua
+          cp INSTRUCTIONS.txt LICENSE Mods/ZF-Laser/
+          zip -r "ZF-Laser-${GITHUB_REF_NAME}.zip" Mods INSTRUCTIONS.txt LICENSE
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: ZF-Laser-*.zip
+          generate_release_notes: true

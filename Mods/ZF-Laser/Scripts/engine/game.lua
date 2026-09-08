@@ -1,0 +1,128 @@
+-- UE4SS glue shared by every module
+local Vec = require("core.vec")
+
+local Game = {}
+
+function Game.Log(fmt, ...)
+    print(string.format("[ZF-Laser] " .. fmt .. "\n", ...))
+end
+
+-- Keybinds and notifications run off the game thread
+function Game.OnGameThread(Body)
+    ExecuteInGameThread(function()
+        local Ok, Err = pcall(Body)
+        if not Ok then Game.Log("error: %s", tostring(Err)) end
+    end)
+end
+
+-- Loads by package and object name through the asset registry. Taken from
+-- UE4SS's bundled BPModLoaderMod, which loads Blueprint mods this way:
+-- https://github.com/UE4SS-RE/RE-UE4SS/blob/main/assets/Mods/BPModLoaderMod/Scripts/main.lua
+-- UE4SS's own LoadAsset is currently unreliable in this game.
+function Game.LoadByPath(PackageName, AssetName)
+    local Helpers = StaticFindObject("/Script/AssetRegistry.Default__AssetRegistryHelpers")
+    local Ok, Object = pcall(function()
+        return Helpers:GetAsset({ PackageName = FName(PackageName), AssetName = FName(AssetName) })
+    end)
+    if Ok and Object and Object:IsValid() then return Object end
+    local Found = StaticFindObject(PackageName .. "." .. AssetName)
+    if Found and Found:IsValid() then return Found end
+    return nil
+end
+
+-- Class default objects, looked up once.
+local Defaults = {}
+function Game.Default(Path)
+    local Object = Defaults[Path]
+    if Object and Object:IsValid() then return Object end
+    Object = StaticFindObject(Path)
+    Defaults[Path] = Object
+    return Object
+end
+
+-- FindFirstOf walks every object, so the player is kept until invalid.
+local Controller, Pawn = nil, nil
+
+function Game.Controller()
+    if Controller and Controller:IsValid() then return Controller end
+    Controller = FindFirstOf("PlayerController")
+    if Controller and Controller:IsValid() then return Controller end
+    Controller = nil
+    return nil
+end
+
+function Game.Pawn()
+    if Pawn and Pawn:IsValid() then return Pawn end
+    local Owner = Game.Controller()
+    if not Owner then return nil end
+    Pawn = Owner:K2_GetPawn()
+    if Pawn and Pawn:IsValid() then return Pawn end
+    Pawn = nil
+    return nil
+end
+
+function Game.ForgetPawn()
+    Pawn = nil
+end
+
+function Game.Camera()
+    local Owner = Game.Controller()
+    local Camera = Owner and Owner.PlayerCameraManager
+    if Camera and Camera:IsValid() then return Camera end
+    return nil
+end
+
+function Game.SocketName(Weapon)
+    return FName(Weapon.FireEffectSocket:ToString())
+end
+
+-- The muzzle socket as a frame: origin and axes in the world.
+function Game.MuzzleFrame(Weapon, Socket)
+    return Vec.Frame(Weapon.Mesh:GetSocketLocation(Socket), Weapon.Mesh:GetSocketRotation(Socket))
+end
+
+function Game.DeltaSeconds(Context)
+    return Game.Default("/Script/Engine.Default__GameplayStatics"):GetWorldDeltaSeconds(Context)
+end
+
+-- The ignore list for traces: the weapon and every actor attached to it,
+-- which is where the game's attachments and charms hang, so the beam does collide on its own gun.
+function Game.WeaponActors(Weapon)
+    local List = { Weapon }
+    pcall(function()
+        local Attached = {}
+        Weapon:GetAttachedActors(Attached, true, true)
+        for _, Actor in ipairs(Attached) do
+            if type(Actor.get) == "function" then Actor = Actor:get() end
+            if Actor and Actor:IsValid() then List[#List + 1] = Actor end
+        end
+    end)
+    return List
+end
+
+local Red, Green = { R = 1.0, G = 0.0, B = 0.0, A = 1.0 }, { R = 0.0, G = 1.0, B = 0.0, A = 1.0 }
+local Visibility = 0   -- ETraceTypeQuery::TraceTypeQuery1
+local Pawns = { 2 }    -- EObjectTypeQuery::Pawn
+
+-- Line trace on the visibility channel. Returns the hit table or nil.
+function Game.TraceWorld(Context, Start, End, Ignore)
+    local Hit = {}
+    local Library = Game.Default("/Script/Engine.Default__KismetSystemLibrary")
+    if Library:LineTraceSingle(Context, Start, End, Visibility, false, Ignore, 0, Hit, true, Red, Green, 0.0) then
+        return Hit
+    end
+    return nil
+end
+
+-- Characters don't block the visibility channel, so they are traced by object type.
+-- Returns the hit table or nil.
+function Game.TracePawns(Context, Start, End, Ignore)
+    local Hit = {}
+    local Library = Game.Default("/Script/Engine.Default__KismetSystemLibrary")
+    if Library:LineTraceSingleForObjects(Context, Start, End, Pawns, false, Ignore, 0, Hit, true, Red, Green, 0.0) then
+        return Hit
+    end
+    return nil
+end
+
+return Game
