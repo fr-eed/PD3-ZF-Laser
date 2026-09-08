@@ -28,7 +28,7 @@ jobs:
         run: |
           rm -f Mods/ZF-Laser/Scripts/settings.lua Mods/ZF-Laser/Scripts/dev.lua
           cp INSTRUCTIONS.txt LICENSE Mods/ZF-Laser/
-          zip -r "ZF-Laser-${GITHUB_REF_NAME}.zip" Mods INSTRUCTIONS.txt LICENSE
+          zip -r "ZF-Laser-$(echo "$GITHUB_REF_NAME" | tr . _).zip" Mods INSTRUCTIONS.txt LICENSE
 
       - name: Release
         uses: softprops/action-gh-release@v3
