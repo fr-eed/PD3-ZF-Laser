@@ -12,7 +12,7 @@ Install
   3. Enjoy
 
 Settings
-  In game: Settings > Interface, scroll to the ZF-LASER section.
+  In game: Settings -> Interface, scroll to the ZF-LASER section.
   Key 0 toggles the laser. Choices are saved to Scripts\settings.lua.
   Defaults and the values without a menu row are in Scripts\config.lua.
 

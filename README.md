@@ -4,9 +4,9 @@ A laser sight for PAYDAY 3. A beam and a dot on the gun in hand
 
 - Follows the gun through sway, reloads and weapon swaps.
 - Zeros itself automatically to the crosshair. Game's viewmodels don't point where the gun shoots.
-- Dot on the first thing the beam collision.
+- Dot on the first thing the beam collides with
 - Per-weapon overrides for the odd ones, like the M135 Arges.
-- Settings section in Settings > Interface. Key 0 toggles the laser by default. Choices are saved.
+- Settings section in Settings -> Interface. Key 0 toggles the laser by default. Choices are saved.
 - Click sound on switch, and a color picker.
 
 Download from the [GitHub releases](https://github.com/fr-eed/PD3-ZF-Laser/releases).
@@ -20,8 +20,8 @@ Copy `Mods/ZF-Laser` into the loader's `Mods` folder so you have `Mods/ZF-Laser/
 
 ## Settings
 
-In game: Settings > Interface, scroll to the ZF-LASER section.
-Afterwards user settings is saved in `Scripts/settings.lua`.
+In game: Settings -> Interface, scroll to the ZF-LASER section.
+Afterwards user settings are saved in `Scripts/settings.lua`.
 
 ## Extra configuration
 
