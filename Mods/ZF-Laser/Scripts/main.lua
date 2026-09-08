@@ -27,6 +27,7 @@ local Lasers = {}         -- weapon address -> Laser
 local HookedFrame = nil   -- address of the animation update function we hooked
 local Creating = nil      -- weapon address whose laser is being spawned
 local LastPawn = nil      -- address of the character the lasers belong to
+local Dev = nil           -- dev.lua, when present
 
 -- Cleared in place: dev.lua keeps a reference to this table.
 local function DestroyAll()
@@ -76,6 +77,7 @@ local function OnFrame(Context)
     local Ok, Err = pcall(function()
         local Player = Game.OwnerOf(Context:get())
         if not Player then return end
+        if Dev then Dev.Frame(Player, Lasers) end
         -- A different character means a new heist: the old lasers died with
         -- the old map, even where their objects still look alive.
         if Player:GetAddress() ~= LastPawn then
@@ -156,8 +158,11 @@ end)
 Menu.Install(Config, DestroyAll)
 
 -- Development aids live in dev.lua
-local HasDev, Dev = pcall(require, "dev")
-if HasDev then Dev.Install(Laser, Lasers) end
+local HasDev, Loaded = pcall(require, "dev")
+if HasDev then
+    Dev = Loaded
+    Dev.Install(Laser, Lasers)
+end
 
 Game.Log("v%s loaded; laser %s, key %s toggles, sound %s",
     Version, Config.Enabled and "on" or "off", Config.Key, Config.Sound.Enabled and "on" or "off")
