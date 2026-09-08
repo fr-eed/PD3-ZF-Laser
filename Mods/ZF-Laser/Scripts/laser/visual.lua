@@ -45,6 +45,7 @@ Visual.__index = Visual
 local Movable = 2      -- EComponentMobility
 local SnapToTarget = 2 -- EAttachmentRule
 local KeepWorld = 1    -- EAttachmentRule, for scale
+local Sweep = {}       -- the sweep result every move writes, see Game.Reuse
 
 -- A movable, collision-free mesh actor with the beam material in the given color.
 -- Starbreeze's engine draws first-person meshes in a "top pass" with
@@ -134,12 +135,12 @@ function Visual:LayOut(Aim)
     for Index, Actor in ipairs(self.Segments) do
         if Actor:IsValid() then
             local Distance = (Index - 0.5) * Segment.Length * 100.0
-            Actor:K2_SetActorRelativeRotation(Rot, false, {}, false)
+            Actor:K2_SetActorRelativeRotation(Rot, false, Game.Reuse(Sweep), false)
             Actor:K2_SetActorRelativeLocation({
                 X = Mount.Forward + Aim.X * Distance,
                 Y = Mount.Right + Aim.Y * Distance,
                 Z = Mount.Up + Aim.Z * Distance,
-            }, false, {}, false)
+            }, false, Game.Reuse(Sweep), false)
         end
     end
 end
@@ -155,7 +156,7 @@ end
 -- The dot on a surface, lifted along its normal and facing it.
 function Visual:PlaceDot(Point, Normal)
     if not self.Dot:IsValid() then return end
-    self.Dot:K2_SetActorLocationAndRotation(Vec.Add(Point, Vec.Scale(Normal, self.Lift)), Vec.ToRotator(Normal), false, {}, false)
+    self.Dot:K2_SetActorLocationAndRotation(Vec.Add(Point, Vec.Scale(Normal, self.Lift)), Vec.ToRotator(Normal), false, Game.Reuse(Sweep), false)
     self.Dot:SetActorHiddenInGame(false)
 end
 
