@@ -10,7 +10,7 @@ A laser sight for PAYDAY 3. A beam and a dot on the gun in hand
 - Click sound on switch, and a color picker.
 
 Download from the [GitHub releases](https://github.com/fr-eed/PD3-ZF-Laser/releases).
-Also listed on [ModWorkshop](https://modworkshop.net/mod/58787).
+Also on [Nexus Mods](https://www.nexusmods.com/payday3/mods/298) and [ModWorkshop](https://modworkshop.net/mod/58787).
 
 ## Install
 
