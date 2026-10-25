@@ -64,10 +64,10 @@ local function CreateLater(Weapon)
     if Creating == Address then return end
     Creating = Address
     Game.OnGameThread(function()
+        Creating = nil
         if Weapon:IsValid() and not Lasers[Address] then
             Lasers[Address] = Laser.New(Weapon, Config)
         end
-        Creating = nil
     end)
 end
 
@@ -95,10 +95,11 @@ local function OnFrame(Context)
         local InHand = Player.EquipState == Equipped and Current and Current:IsValid()
 
         local Wanted = (Config.Enabled and InHand and not Interacting(Player) and WantsLaser(Current)) and Current or nil
-        for _, Item in pairs(Lasers) do
+        for Address, Item in pairs(Lasers) do
             if not Wanted or Item.Weapon:GetAddress() ~= Wanted:GetAddress() then
                 if Item.On then Sound.Play(Config, Item.Weapon) end
-                Item:SetOn(false)
+                Item:Destroy()
+                Lasers[Address] = nil
             end
         end
         if not Wanted then return end

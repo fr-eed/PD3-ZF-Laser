@@ -47,6 +47,9 @@ local SnapToTarget = 2 -- EAttachmentRule
 local KeepWorld = 1    -- EAttachmentRule, for scale
 local Sweep = {}       -- the sweep result every move writes, see Game.Reuse
 
+local ActorLifeSeconds = 0.5    -- seconds an actor lives without a renewal
+local ActorRenewSeconds = 0.1   -- seconds between renewals
+
 -- A movable, collision-free mesh actor with the beam material in the given color.
 -- Starbreeze's engine draws first-person meshes in a "top pass" with
 -- the gun's own field of view. The beam is drawn in whichever pass the gun is in,
@@ -64,6 +67,7 @@ local function SpawnGlow(World, Loaded, Mesh, At, Rot, Tint, TopPass)
     local Dynamic = Comp:CreateDynamicMaterialInstance(0, nil, FName("None"))
     if Dynamic and Dynamic:IsValid() then Dynamic:SetVectorParameterValue(FName("Color"), Tint) end
     Actor:SetActorHiddenInGame(true)
+    Actor:SetLifeSpan(ActorLifeSeconds)
     return Actor
 end
 
@@ -127,6 +131,17 @@ end
 
 function Visual:IsValid()
     return self.Beam ~= nil and self.Beam:IsValid()
+end
+
+-- Updates life span when the laser is still used by the mod.
+-- sets Beam to nil when old actor is already deleted by time
+function Visual:Keep(Delta)
+    if Delta > ActorLifeSeconds then self.Beam = nil return end
+    self.Clock = (self.Clock or ActorRenewSeconds) + Delta
+    if self.Clock < ActorRenewSeconds then return end
+    self.Clock = 0.0
+    if self.Beam and self.Beam:IsValid() then self.Beam:SetLifeSpan(ActorLifeSeconds) end
+    if self.Dot and self.Dot:IsValid() then self.Dot:SetLifeSpan(ActorLifeSeconds) end
 end
 
 -- The beam from the emitter along Aim, a unit direction in the socket's frame.

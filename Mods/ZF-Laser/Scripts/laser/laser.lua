@@ -85,11 +85,13 @@ function Laser:Update(Pawn, Camera)
     local Frame = Game.MuzzleFrame(self.Weapon, self.Socket)
     local Emitter = self:Emitter(Frame)
 
+    local Delta = Game.DeltaSeconds(self.Weapon)
+    self.Visual:Keep(Delta)
+
     local Snap = Game.Targeting(Pawn)
     local Target = self:AimTarget(Pawn, Camera, Frame, Emitter, Reach)
     if Laser.OnTarget then Laser.OnTarget(self, Target) end   -- dev.lua, if present
-    self.Aim = Zeroing.Step(self.Tuning.Zeroing, self.Aim, Target, self.Bore,
-        Game.DeltaSeconds(self.Weapon), Snap)
+    self.Aim = Zeroing.Step(self.Tuning.Zeroing, self.Aim, Target, self.Bore, Delta, Snap)
 
     -- Starts a little ahead of the muzzle so the gun's own barrel and
     -- attachments, which hang off the weapon as separate actors, are skipped.
