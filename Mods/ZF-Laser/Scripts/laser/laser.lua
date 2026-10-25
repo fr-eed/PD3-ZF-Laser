@@ -29,7 +29,7 @@ function Laser.New(Weapon, Config)
         Instance = Weapon:GetFullName(),
     }, Laser)
     Self.Aim = Self.Bore   -- unit direction in the socket frame
-    Drawn:LayOut(Self.Aim)
+    Drawn:SetBeam(Self.Aim)
     Game.Log("laser on %s", ClassName)
     return Self
 end
@@ -74,25 +74,19 @@ function Laser:AimTarget(Pawn, Camera, Frame, Emitter, Reach)
     return Vec.Normalized(Vec.ToLocal({ Origin = Emitter, X = Frame.X, Y = Frame.Y, Z = Frame.Z }, Point))
 end
 
--- Once per frame while on: steer the beam, then trace along it for the dot.
--- The beam itself is left whole: going through glass and still leaving a dot
--- on it is what a real one does.
+-- Once per frame while on: steer the beam, trace along it and draw a dot at the collision.
+-- Beam length is trunicated by the collision 
 function Laser:Update(Pawn, Camera)
     if not self.On or not self.Visual:IsValid() then return end
     -- Follows the gun between passes, so other mods may move the viewmodel.
     self.Visual:SetPass(Visual.GunPass(self.Weapon))
-    local Segment = self.Config.Segment
-    local Reach = Segment.Length * Segment.Count * 100.0
+    local Reach = self.Config.Beam.Length * 100.0
     local Frame = Game.MuzzleFrame(self.Weapon, self.Socket)
     local Emitter = self:Emitter(Frame)
 
     local Target = self:AimTarget(Pawn, Camera, Frame, Emitter, Reach)
     if Laser.OnTarget then Laser.OnTarget(self, Target) end   -- dev.lua, if present
-    local Next = Zeroing.Step(self.Tuning.Zeroing, self.Aim, Target, self.Bore, Game.DeltaSeconds(self.Weapon))
-    if not Vec.Same(Next, self.Aim) then
-        self.Aim = Next
-        self.Visual:LayOut(Next)
-    end
+    self.Aim = Zeroing.Step(self.Tuning.Zeroing, self.Aim, Target, self.Bore, Game.DeltaSeconds(self.Weapon))
 
     -- Starts a little ahead of the muzzle so the gun's own barrel and
     -- attachments, which hang off the weapon as separate actors, are skipped.
@@ -103,6 +97,7 @@ function Laser:Update(Pawn, Camera)
     local Hit = Game.TraceWorld(Pawn, Start, End, Ignore)
     local Person = Game.TracePawns(Pawn, Start, End, Ignore)
     if Person and (not Hit or Person.Distance < Hit.Distance) then Hit = Person end
+    self.Visual:SetBeam(self.Aim, Hit and Hit.Distance + 10.0 or nil)
     if Hit then
         self.Visual:PlaceDot(Hit.ImpactPoint, Hit.ImpactNormal)
     else

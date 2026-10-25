@@ -1,4 +1,4 @@
--- The visible laser: beam segments attached to the muzzle socket and a dot placed at the collision
+-- The visible laser: beam mesh attached to the muzzle socket and a dot placed at the collision
 local Vec = require("core.vec")
 local Color = require("core.color")
 local Game = require("engine.game")
@@ -67,8 +67,14 @@ local function SpawnGlow(World, Loaded, Mesh, At, Rot, Tint, TopPass)
     return Actor
 end
 
--- Spawns the segments attached at the muzzle socket, and the dot, all
--- hidden. Mount is the emitter offset the lay-out uses. Returns nil if
+-- Scale that makes the cylinder Thickness wide and Length cm long.
+-- the cylinder is 100 cm long at scale 1.
+local function BeamScale(Thickness, Length)
+    return { X = Thickness, Y = Thickness, Z = Length / 100.0 }
+end
+
+-- Spawns the beam attached at the muzzle socket, and a dot (hidden)
+-- Mount is the emitter offset the lay-out uses. Returns nil if
 -- anything failed.
 function Visual.New(Weapon, Socket, Config, Mount)
     local Loaded = Assets.Get()
@@ -76,22 +82,18 @@ function Visual.New(Weapon, Socket, Config, Mount)
     local World = Weapon:GetWorld()
     local At = Weapon.Mesh:GetSocketLocation(Socket)
     local Rot = Weapon.Mesh:GetSocketRotation(Socket)
-    local Segment = Config.Segment
+    local Beam = Config.Beam
     local Self = setmetatable({
-        Segments = {}, Segment = Segment, Mount = Mount, Math = Loaded.Math,
+        Max = Beam.Length * 100.0, Length = Beam.Length * 100.0,
+        Thickness = Beam.Thickness, Mount = Mount, Math = Loaded.Math,
         TopPass = Visual.GunPass(Weapon),
     }, Visual)
 
-    -- The cylinder's long axis is Z.
-    local Scale = { X = Segment.Thickness, Y = Segment.Thickness, Z = Segment.Length }
     local BeamColor = Color.Material(Config.Hue, Config.Brightness)
-    for Index = 1, Segment.Count do
-        local Actor = SpawnGlow(World, Loaded, Loaded.BeamMesh, At, Rot, BeamColor, Self.TopPass)
-        if not Actor then Self:Destroy() return nil end
-        Actor:K2_AttachToComponent(Weapon.Mesh, Socket, SnapToTarget, SnapToTarget, KeepWorld, false)
-        Actor:SetActorScale3D(Scale)
-        Self.Segments[Index] = Actor
-    end
+    Self.Beam = SpawnGlow(World, Loaded, Loaded.BeamMesh, At, Rot, BeamColor, Self.TopPass)
+    if not Self.Beam then Self:Destroy() return nil end
+    Self.Beam:K2_AttachToComponent(Weapon.Mesh, Socket, SnapToTarget, SnapToTarget, KeepWorld, false)
+    Self.Beam:SetActorScale3D(BeamScale(Beam.Thickness, Self.Max))
 
     local DotColor = Color.Material(Config.Hue, Config.Dot.Brightness)
     Self.Dot = SpawnGlow(World, Loaded, Loaded.DotMesh, At, Rot, DotColor, Self.TopPass)
@@ -112,7 +114,7 @@ end
 function Visual:SetPass(TopPass)
     if self.TopPass == TopPass then return end
     self.TopPass = TopPass
-    for _, Actor in ipairs({ self.Dot, table.unpack(self.Segments) }) do
+    for _, Actor in ipairs({ self.Beam, self.Dot }) do
         if Actor and Actor:IsValid() then
             local Comp = Actor.StaticMeshComponent
             Comp.bRenderInTopPass = TopPass
@@ -124,32 +126,33 @@ function Visual:SetPass(TopPass)
 end
 
 function Visual:IsValid()
-    return self.Segments[1] ~= nil and self.Segments[1]:IsValid()
+    return self.Beam ~= nil and self.Beam:IsValid()
 end
 
--- Segments end to end from the emitter along Aim, a unit direction in thw socket's frame.
-function Visual:LayOut(Aim)
-    local Segment, Mount = self.Segment, self.Mount
+-- The beam from the emitter along Aim, a unit direction in the socket's frame.
+-- Length is trunicated by the collision with Hit
+function Visual:SetBeam(Aim, Hit)
+    if not self.Beam:IsValid() then return end
+    local Length = math.min(Hit or self.Max, self.Max)
+    local Resized = Length ~= self.Length
+    local Turned = not (self.Aim and Vec.Same(Aim, self.Aim))
+    if not (Resized or Turned) then return end
+    if Resized then self.Beam:SetActorScale3D(BeamScale(self.Thickness, Length)) end
+    self.Aim, self.Length = Aim, Length
+    local Mount, Half = self.Mount, Length * 0.5
     -- The cylinder is first pitched so its Z axis lies along X, then aimed.
     local Rot = self.Math:ComposeRotators({ Pitch = -90.0, Yaw = 0.0, Roll = 0.0 }, Vec.ToRotator(Aim))
-    for Index, Actor in ipairs(self.Segments) do
-        if Actor:IsValid() then
-            local Distance = (Index - 0.5) * Segment.Length * 100.0
-            Actor:K2_SetActorRelativeRotation(Rot, false, Game.Reuse(Sweep), false)
-            Actor:K2_SetActorRelativeLocation({
-                X = Mount.Forward + Aim.X * Distance,
-                Y = Mount.Right + Aim.Y * Distance,
-                Z = Mount.Up + Aim.Z * Distance,
-            }, false, Game.Reuse(Sweep), false)
-        end
-    end
+    self.Beam:K2_SetActorRelativeRotation(Rot, false, Game.Reuse(Sweep), false)
+    self.Beam:K2_SetActorRelativeLocation({
+        X = Mount.Forward + Aim.X * Half,
+        Y = Mount.Right + Aim.Y * Half,
+        Z = Mount.Up + Aim.Z * Half,
+    }, false, Game.Reuse(Sweep), false)
 end
 
--- Shows or hides the segments. The dot is placed or hidden separately.
+-- Shows or hides the beam. The dot is placed or hidden separately.
 function Visual:SetOn(On)
-    for _, Actor in ipairs(self.Segments) do
-        if Actor:IsValid() then Actor:SetActorHiddenInGame(not On) end
-    end
+    if self.Beam and self.Beam:IsValid() then self.Beam:SetActorHiddenInGame(not On) end
     if not On then self:HideDot() end
 end
 
@@ -165,11 +168,9 @@ function Visual:HideDot()
 end
 
 function Visual:Destroy()
-    for _, Actor in ipairs(self.Segments) do
-        if Actor:IsValid() then Actor:K2_DestroyActor() end
-    end
+    if self.Beam and self.Beam:IsValid() then self.Beam:K2_DestroyActor() end
     if self.Dot and self.Dot:IsValid() then self.Dot:K2_DestroyActor() end
-    self.Segments = {}
+    self.Beam = nil
 end
 
 return Visual

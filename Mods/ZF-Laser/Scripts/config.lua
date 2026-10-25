@@ -4,7 +4,7 @@ local Config = {
     Key = "ZERO",            -- toggles the laser
     Brightness = 0.8,        -- HDR, additive. Can be set to 0 for only visible Dot
     Hue = 0.0,               -- degrees: 0 red, 120 green, 240 blue; beam and dot
-    Segment = { Length = 1.0, Thickness = 0.0025, Count = 8 },   -- meters; reach is Length * Count
+    Beam = { Length = 8.0, Thickness = 0.0025 },   -- Length and Thickness of beam in (m).
     -- Emitter offset from the muzzle socket in cm; Zero is where the beam
     -- meets the bore line (m) when crosshair zeroing is off.
     Mount = { Forward = -30.0, Right = 0.0, Up = -2.0, Zero = 15.0 },
