@@ -66,7 +66,8 @@ function Laser:AimTarget(Pawn, Camera, Frame, Emitter, Reach)
     -- which puts the beam a frame behind every turn. The control rotation
     -- already has this frame's input.
     local Rot = Camera:GetCameraRotation()
-    pcall(function() Rot = Pawn.Controller:GetControlRotation() end)
+    local Ok, Control = pcall(function() return Pawn.Controller:GetControlRotation() end)
+    if Ok then Rot = Control end
     local Forward = Vec.AxesOf(Rot)
     local Far = Vec.Add(Eye, Vec.Scale(Forward, Reach))
     local Hit = Game.TraceWorld(Pawn, Eye, Far, Game.WeaponActors(self.Weapon))
