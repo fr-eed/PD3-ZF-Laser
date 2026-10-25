@@ -146,6 +146,10 @@ NotifyOnNewObject("/Script/Starbreeze.SBZPlayerCharacter", function()
     end)
 end)
 
+-- An extra hook in case the character was created before the mod loaded
+-- For example: when someone reloaded mods mid game
+Game.OnGameThread(HookFrame)
+
 RegisterKeyBind(Key[Config.Key], {}, function()
     Game.OnGameThread(function()
         Config.Enabled = not Config.Enabled
