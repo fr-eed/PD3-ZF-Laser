@@ -24,6 +24,10 @@ local Config = {
             Zeroing = { MaxAngle = 20.0 },
             Bore = { Pitch = -8.5, Yaw = 0.1 },
         },
+        ["BP_RangedWeapon_OVK_Saw_C"] = {
+            Zeroing = { MaxAngle = 20.0 },
+            Bore = { Pitch = -38.0, Yaw = 11.9 },
+        },
     },
     -- Wwise event played when the laser turns on or off, as package and event
     -- name. Currently the cutting tool's on-switch foley.
