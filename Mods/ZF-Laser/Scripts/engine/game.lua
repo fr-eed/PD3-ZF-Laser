@@ -57,6 +57,13 @@ function Game.Camera(Pawn)
     return nil
 end
 
+-- True when ADS.
+function Game.Targeting(Pawn)
+    local Ok, Yes = pcall(function() return Pawn.bIsTargeting end)
+    if not Ok then return false end
+    return Yes == true or Yes == 1
+end
+
 function Game.SocketName(Weapon)
     return FName(Weapon.FireEffectSocket:ToString())
 end

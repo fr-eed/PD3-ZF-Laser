@@ -13,7 +13,7 @@ end
 -- One frame of steering. Aim is the current direction, Target where the
 -- crosshair says the beam should go, Bore the resting direction, all in the
 -- gun's frame. Returns the new direction.
-function Zeroing.Step(Settings, Aim, Target, Bore, Delta)
+function Zeroing.Step(Settings, Aim, Target, Bore, Delta, Snap)
     -- Zeroing off, or no camera to aim by: the beam rests on the bore.
     if not Settings.ToAim or not Target then return Bore end
 
@@ -21,6 +21,13 @@ function Zeroing.Step(Settings, Aim, Target, Bore, Delta)
     -- it shoots (a reload, an inspect), so the beam goes back to the bore
     -- instead of chasing the crosshair across the screen.
     if Vec.Angle(Target, Bore) > Settings.MaxAngle then Target = Bore end
+
+    -- Snap is used to instantly snap to the right angle. Used for ADS
+    if Snap then
+        local Pitch = Vec.PitchYaw(Target)
+        local _, Yaw = Vec.PitchYaw(Bore)
+        return Vec.FromAngles(math.rad(Pitch), math.rad(Yaw))
+    end
 
     -- Time zero snaps. Once the beam is nearly on target it jumps the last
     -- bit exactly: the average below would otherwise move toward the target forever.
