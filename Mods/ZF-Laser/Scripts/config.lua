@@ -8,7 +8,7 @@ local Config = {
     -- Emitter offset from the muzzle socket in cm; Zero is where the beam
     -- meets the bore line (m) when crosshair zeroing is off.
     Mount = { Forward = -30.0, Right = 0.0, Up = -2.0, Zero = 15.0 },
-    Dot = { Size = 0.02, Lift = 1.0, Brightness = 6.05 },   -- sphere, meters; lift in cm
+    Dot = { Size = 0.02, Lift = 0.0, Brightness = 6.05, Reach = 100.0 }, -- Size of sphere in (m). Lift in (cm). Reach in (m)
     -- Steer the beam onto the crosshair's hit point while the barrel is within
     -- MaxAngle degrees of it, averaged over Time seconds. See core/zeroing.lua.
     Zeroing = { ToAim = true, MaxAngle = 6.0, Time = 0.4 },

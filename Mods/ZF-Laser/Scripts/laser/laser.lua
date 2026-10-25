@@ -80,7 +80,7 @@ function Laser:Update(Pawn, Camera)
     if not self.On or not self.Visual:IsValid() then return end
     -- Follows the gun between passes, so other mods may move the viewmodel.
     self.Visual:SetPass(Visual.GunPass(self.Weapon))
-    local Reach = self.Config.Beam.Length * 100.0
+    local Reach = self.Config.Dot.Reach * 100.0
     local Frame = Game.MuzzleFrame(self.Weapon, self.Socket)
     local Emitter = self:Emitter(Frame)
 
